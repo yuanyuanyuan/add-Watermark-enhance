@@ -12,6 +12,10 @@ import { SimpleWatermarkProcessor } from '@/utils/watermark/SimpleWatermarkProce
 import { DocumentProcessor } from '@/utils/document/DocumentProcessor';
 // import { NativeDocumentProcessor } from '@/utils/document/NativeDocumentProcessor'; // 暂未使用
 import { EnhancedDocumentProcessor } from '@/utils/document/EnhancedDocumentProcessor';
+// 方案A核心模块集成
+import { HybridDocumentProcessor } from '@/utils/document/HybridDocumentProcessor';
+import { WatermarkImageGenerator } from '../engines/watermark/WatermarkImageGenerator';
+import { PDFWatermarkMerger } from '../engines/pdf/PDFWatermarkMerger';
 // 新增：集成增强的水印引擎
 import { ChineseWatermarkRenderer } from '../engines/canvas/ChineseWatermarkRenderer';
 import { PDFWatermarkEngine } from '../engines/pdf/PDFWatermarkEngine';
@@ -491,14 +495,43 @@ export const useWatermarkStore = create<WatermarkStore>((set, get) => ({
           else if (isWordFile && (settings.output.format as string) === 'pdf') {
             console.log('🔄 使用Word转PDF增强流程...');
             
-            // 先提取Word内容
-            const docResult = await EnhancedDocumentProcessor.processDocument(file, {
-              type: settings.type,
-              text: settings.text,
-              position: settings.position,
-              security: settings.security,
-              output: settings.output
-            });
+            // 方案A: 优先使用混合文档处理器（Word原生PDF转换 + 水印图片合并）
+            console.log('🚀 启用方案A: 混合文档处理器');
+            
+            let docResult;
+            try {
+              docResult = await HybridDocumentProcessor.processDocument(file, {
+                type: settings.type,
+                text: settings.text,
+                position: settings.position,
+                security: settings.security,
+                output: settings.output
+              }, {
+                preserveFormatting: true,
+                watermarkStrategy: 'overlay',
+                fallbackTimeout: 15000,
+                qualityProfile: 'balanced'
+              });
+
+              console.log('✅ 方案A处理结果:', {
+                success: docResult.success,
+                method: docResult.processingMethod,
+                formatPreserved: docResult.formatPreservation?.success,
+                watermarkCount: docResult.watermarkApplication?.watermarkCount
+              });
+
+            } catch (hybridError) {
+              console.warn('⚠️ 方案A失败，回退到增强处理器:', hybridError);
+              
+              // 回退到原有的增强文档处理器
+              docResult = await EnhancedDocumentProcessor.processDocument(file, {
+                type: settings.type,
+                text: settings.text,
+                position: settings.position,
+                security: settings.security,
+                output: settings.output
+              });
+            }
             
             if (docResult.success && docResult.extractedContent) {
               // 使用PDF引擎创建带水印的PDF
@@ -591,13 +624,41 @@ export const useWatermarkStore = create<WatermarkStore>((set, get) => ({
                 // nativeDocumentResult: docResult // 移除不兼容的字段
               };
             } else if (isWordFile) {
-              const docResult = await EnhancedDocumentProcessor.processDocument(file, {
-                type: settings.type,
-                text: settings.text,
-                position: settings.position,
-                security: settings.security,
-                output: settings.output
-              });
+              // 方案A: 对Word文件也使用混合处理器
+              console.log('🚀 Word文件启用方案A: 混合文档处理器');
+              
+              let docResult;
+              try {
+                docResult = await HybridDocumentProcessor.processDocument(file, {
+                  type: settings.type,
+                  text: settings.text,
+                  position: settings.position,
+                  security: settings.security,
+                  output: settings.output
+                }, {
+                  preserveFormatting: true,
+                  watermarkStrategy: 'overlay',
+                  fallbackTimeout: 10000,
+                  qualityProfile: 'balanced'
+                });
+                
+                console.log('✅ Word文件方案A处理结果:', {
+                  success: docResult.success,
+                  method: docResult.processingMethod,
+                  formatPreserved: docResult.formatPreservation?.success
+                });
+
+              } catch (hybridError) {
+                console.warn('⚠️ Word文件方案A失败，使用原有处理器:', hybridError);
+                
+                docResult = await EnhancedDocumentProcessor.processDocument(file, {
+                  type: settings.type,
+                  text: settings.text,
+                  position: settings.position,
+                  security: settings.security,
+                  output: settings.output
+                });
+              }
               
               watermarkResult = {
                 success: docResult.success,

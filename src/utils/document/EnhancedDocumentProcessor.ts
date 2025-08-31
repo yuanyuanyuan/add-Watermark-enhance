@@ -668,7 +668,7 @@ export class EnhancedDocumentProcessor {
    */
   private static async createPDFPages(pdfDoc: any, text: string): Promise<any[]> {
     const pages = [];
-    const lines = text.split('').filter(line => line.trim());
+    const lines = text.split('\n').filter(line => line.trim());
     const linesPerPage = 40;
     const pageCount = Math.ceil(lines.length / linesPerPage);
 

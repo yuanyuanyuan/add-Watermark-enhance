@@ -1,19 +1,33 @@
 /**
  * Vitest 测试环境设置
+ * 支持完整的测试体系：380个用例
+ * 包含 Canvas、Worker、Crypto、File API 等完整 Mock
  */
 
 import { vi } from 'vitest';
+// import '@testing-library/jest-dom';
 
 // 模拟 Canvas API
 global.HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
+  // 绘制方法
   drawImage: vi.fn(),
   fillText: vi.fn(),
+  strokeText: vi.fn(),
+  measureText: vi.fn((text) => ({ width: text.length * 10 })), // 简单的文本宽度计算
+  // 状态管理
   save: vi.fn(),
   restore: vi.fn(),
+  // 变换方法
   translate: vi.fn(),
   rotate: vi.fn(),
   scale: vi.fn(),
+  transform: vi.fn(),
+  setTransform: vi.fn(),
+  resetTransform: vi.fn(),
+  // 路径方法
   clearRect: vi.fn(),
+  fillRect: vi.fn(),
+  strokeRect: vi.fn(),
   beginPath: vi.fn(),
   closePath: vi.fn(),
   stroke: vi.fn(),
@@ -21,16 +35,39 @@ global.HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   arc: vi.fn(),
   moveTo: vi.fn(),
   lineTo: vi.fn(),
+  quadraticCurveTo: vi.fn(),
+  bezierCurveTo: vi.fn(),
+  // 剪切和合成
+  clip: vi.fn(),
+  // 属性
   globalAlpha: 1,
+  globalCompositeOperation: 'source-over',
   font: '16px Arial',
   fillStyle: '#000000',
   strokeStyle: '#000000',
+  lineWidth: 1,
+  lineCap: 'butt',
+  lineJoin: 'miter',
+  miterLimit: 10,
   textAlign: 'start',
   textBaseline: 'alphabetic',
+  direction: 'ltr',
   shadowColor: 'transparent',
   shadowOffsetX: 0,
   shadowOffsetY: 0,
   shadowBlur: 0,
+  // 图像数据
+  getImageData: vi.fn(() => ({
+    data: new Uint8ClampedArray(400 * 400 * 4), // 400x400 RGBA
+    width: 400,
+    height: 400
+  })),
+  putImageData: vi.fn(),
+  createImageData: vi.fn(() => ({
+    data: new Uint8ClampedArray(400 * 400 * 4),
+    width: 400,
+    height: 400
+  })),
 }));
 
 global.HTMLCanvasElement.prototype.toDataURL = vi.fn(() => 'data:image/png;base64,mock-data-url');

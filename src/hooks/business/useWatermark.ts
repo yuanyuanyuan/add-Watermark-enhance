@@ -42,7 +42,7 @@ export function useWatermark(options: UseWatermarkOptions = {}): UseWatermarkRet
     onProcessStart,
     onProcessComplete,
     onProcessError,
-    onProgress
+    onProgress: _onProgress
   } = options;
 
   const processorRef = useRef<WatermarkProcessor | null>(null);

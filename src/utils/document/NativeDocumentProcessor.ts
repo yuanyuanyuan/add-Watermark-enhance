@@ -3,8 +3,7 @@
  * 支持PDF和Word文档的水印添加，输出为相同格式
  */
 
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { Document, Packer, Paragraph, TextRun, Header, Footer } from 'docx';
+import { PDFDocument, rgb } from 'pdf-lib';
 import JSZip from 'jszip';
 import type { SimpleWatermarkSettings, SimpleColorConfig } from '../watermark/SimpleWatermarkProcessor';
 import { ChineseFontLoader } from '../fonts/ChineseFontLoader';
@@ -21,6 +20,13 @@ export interface NativeDocumentResult {
   };
   error?: string;
   processingTime: number;
+  metadata?: {
+    method: string;
+    fontUsed: string;
+    chineseSupport: boolean;
+    warning?: string;
+    error?: string;
+  };
 }
 
 export class NativeDocumentProcessor {
@@ -119,10 +125,12 @@ export class NativeDocumentProcessor {
     });
 
     // 创建支持中文的字体
-    const font = await ChineseFontLoader.createPDFFont(pdfDoc, watermarkText);
+    const font = await ChineseFontLoader.createPDFFont(pdfDoc, watermarkText) || undefined;
 
     // 解析颜色，使用用户设置的颜色或默认黑色
-    const color = this.parseColor(settings.text?.color || '#000000');
+    const textColor = settings.text?.color;
+    const colorString = typeof textColor === 'string' ? textColor : textColor?.primary || '#000000';
+    const color = this.parseColor(colorString);
 
     // 在每页添加水印
     for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
@@ -235,7 +243,7 @@ export class NativeDocumentProcessor {
       // 读取Word文件内容
       const arrayBuffer = await file.arrayBuffer();
       const watermarkText = settings.text?.content || 'WATERMARK';
-      const fontSize = Math.max(12, (settings.text?.font?.size || 24) * settings.position.scale);
+      // const fontSize = Math.max(12, (settings.text?.font?.size || 24) * settings.position.scale);
       
       // 使用JSZip读取Word文档（DOCX是ZIP格式）
       const zip = await JSZip.loadAsync(arrayBuffer);
@@ -329,7 +337,7 @@ export class NativeDocumentProcessor {
       }
 
       // 创建水印段落元素
-      const watermarkParagraph = this.createWatermarkParagraphXML(watermarkText, settings, xmlDoc);
+      const watermarkParagraph = this.createWatermarkParagraphXML(watermarkText, settings, xmlDoc as any);
       
       // 在文档开始处插入水印段落
       const firstChild = bodyElement.firstElementChild;
@@ -358,7 +366,7 @@ export class NativeDocumentProcessor {
     settings: SimpleWatermarkSettings
   ): string {
     // 创建多个水印段落的XML字符串
-    const opacity = Math.round(settings.position.opacity * 100);
+    // const opacity = Math.round(settings.position.opacity * 100);
     const color = this.getColorHex(settings.text?.color) || '000000';
     const fontSize = Math.max(12, (settings.text?.font?.size || 24) * settings.position.scale * 2); // Word使用半点单位
 
@@ -480,7 +488,7 @@ export class NativeDocumentProcessor {
   private createWatermarkParagraphXML(
     watermarkText: string, 
     settings: SimpleWatermarkSettings,
-    xmlDoc: Document
+    xmlDoc: XMLDocument
   ): Element {
     const nsUri = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
     
@@ -641,92 +649,13 @@ export class NativeDocumentProcessor {
     return positions;
   }
 
-  /**
-   * 获取ASCII兼容的水印文本（预处理版本）
-   */
-  private getASCIICompatibleText(text: string): string {
-    console.log(`原始水印文本: "${text}", 长度: ${text.length}, 类型: ${typeof text}`);
-    
-    // 检查输入是否为空或无效
-    if (!text || typeof text !== 'string') {
-      console.warn('水印文本为空或无效，使用默认值');
-      return 'WATERMARK';
-    }
-    
-    // 清理文本（去除首尾空格）
-    const cleanedText = text.trim();
-    if (!cleanedText) {
-      console.warn('清理后的水印文本为空，使用默认值');
-      return 'WATERMARK';
-    }
-    
-    console.log(`清理后的水印文本: "${cleanedText}"`);
-    
-    // 首先检查是否已经是ASCII兼容的
-    if (/^[\x00-\x7F]*$/.test(cleanedText)) {
-      console.log('✅ 文本已是ASCII兼容，直接使用');
-      return cleanedText;
-    }
-
-    console.log('检测到非ASCII字符，开始转换为ASCII兼容格式');
-    
-    // 扩展的中文到拼音/英文的映射表
-    const chineseToASCII: Record<string, string> = {
-      '水印': 'WATERMARK',
-      '测试水印': 'TEST-WATERMARK',
-      '水': 'SHUI', 
-      '印': 'YIN',
-      '测试': 'TEST',
-      '测': 'CE',
-      '试': 'SHI',
-      '文档': 'DOCUMENT',
-      '保密': 'CONFIDENTIAL',
-      '草稿': 'DRAFT',
-      '版权': 'COPYRIGHT',
-      '样本': 'SAMPLE',
-      '副本': 'COPY',
-      '机密': 'CONFIDENTIAL',
-      '私有': 'PRIVATE',
-      '内部': 'INTERNAL',
-      '公司': 'COMPANY',
-      '产品': 'PRODUCT',
-      '项目': 'PROJECT'
-    };
-
-    // 尝试完整匹配
-    if (chineseToASCII[cleanedText]) {
-      console.log(`完整匹配转换: "${cleanedText}" -> "${chineseToASCII[cleanedText]}"`);
-      return chineseToASCII[cleanedText];
-    }
-
-    // 字符级别替换
-    let result = cleanedText;
-    let hasReplacements = false;
-    
-    for (const [chinese, ascii] of Object.entries(chineseToASCII)) {
-      if (result.includes(chinese)) {
-        result = result.replace(new RegExp(chinese, 'g'), ascii);
-        console.log(`部分替换: "${chinese}" -> "${ascii}"`);
-        hasReplacements = true;
-      }
-    }
-
-    // 如果仍包含非ASCII字符，使用默认水印
-    if (!/^[\x00-\x7F]*$/.test(result)) {
-      console.log(`转换后仍有非ASCII字符: "${result}"，使用默认英文水印`);
-      return `WATERMARK-${new Date().getFullYear()}`;
-    }
-
-    console.log(`最终转换结果: "${cleanedText}" -> "${result}"`);
-    return result;
-  }
 
   /**
    * 将中文水印文本转换为ASCII兼容格式（保留兼容性）
    */
-  private convertToASCIIWatermark(text: string): string {
-    return this.getASCIICompatibleText(text);
-  }
+  // private convertToASCIIWatermark(text: string): string {
+  //   return this.getASCIICompatibleText(text);
+  // }
 
   /**
    * 处理Word文档转PDF（带水印）
@@ -780,7 +709,7 @@ export class NativeDocumentProcessor {
       
       // 创建新的PDF文档
       const pdfLib = await import('pdf-lib');
-      const { PDFDocument, rgb, StandardFonts } = pdfLib;
+      const { PDFDocument, rgb } = pdfLib;
       
       console.log('pdf-lib imported:', !!pdfLib);
       console.log('PDFDocument available:', !!PDFDocument);
@@ -922,22 +851,81 @@ export class NativeDocumentProcessor {
         
         console.log(`🎨 页面 ${pageIndex + 1} 水印位置数量:`, watermarkPositions.length);
         
-        // 添加水印到当前页面的所有位置
-        for (let posIndex = 0; posIndex < watermarkPositions.length; posIndex++) {
-          const { x, y } = watermarkPositions[posIndex];
+        // 使用Canvas渲染中文水印 - 修复中文显示问题
+        try {
+          console.log(`🎨 页面 ${pageIndex + 1} 开始Canvas水印渲染...`);
           
-          try {
-            currentPageForWatermark.drawText(finalWatermarkText, {
-              x,
-              y,
-              size: watermarkFontSize,
-              font,
-              color: rgb(watermarkColor.r, watermarkColor.g, watermarkColor.b),
-              opacity: watermarkOpacity
-            });
-            console.log(`✅ 页面 ${pageIndex + 1} 位置 ${posIndex + 1} 水印添加成功`);
-          } catch (error) {
-            console.error(`❌ 页面 ${pageIndex + 1} 位置 ${posIndex + 1} 水印添加失败:`, error);
+          // 导入ChineseWatermarkRenderer
+          const { ChineseWatermarkRenderer } = await import('../../engines/canvas/ChineseWatermarkRenderer');
+          
+          // 创建水印配置
+          const watermarkOptions = {
+            text: finalWatermarkText,
+            fontSize: watermarkFontSize,
+            color: colorStr,
+            opacity: watermarkOpacity,
+            rotation: 0 // Word转PDF通常不需要旋转
+          };
+          
+          console.log(`🎨 Canvas水印配置:`, watermarkOptions);
+          
+          // 创建中文水印图像
+          const watermarkImage = await ChineseWatermarkRenderer.createChineseWatermarkImage(watermarkOptions);
+          
+          console.log(`🎨 Canvas水印图像创建成功:`, {
+            dimensions: watermarkImage.dimensions,
+            blobSize: watermarkImage.blob.size
+          });
+          
+          // 将水印PNG嵌入PDF
+          const imageBytes = await this.blobToArrayBuffer(watermarkImage.blob);
+          const pdfImage = await pdfDoc.embedPng(imageBytes);
+          
+          // 添加水印到所有位置
+          for (let posIndex = 0; posIndex < watermarkPositions.length; posIndex++) {
+            const { x, y } = watermarkPositions[posIndex];
+            
+            try {
+              // 计算水印尺寸（适当缩放以适应网格布局）
+              const scaleFactor = 0.8; // 稍微缩小以适应密集布局
+              const imageWidth = watermarkImage.dimensions.width * scaleFactor;
+              const imageHeight = watermarkImage.dimensions.height * scaleFactor;
+              
+              // 以指定位置为中心绘制水印
+              currentPageForWatermark.drawImage(pdfImage, {
+                x: x - imageWidth / 2,
+                y: y - imageHeight / 2,
+                width: imageWidth,
+                height: imageHeight,
+                opacity: watermarkOpacity * 0.9 // 稍微调整透明度
+              });
+              
+              console.log(`✅ 页面 ${pageIndex + 1} 位置 ${posIndex + 1} Canvas水印添加成功`);
+            } catch (drawError) {
+              console.error(`❌ 页面 ${pageIndex + 1} 位置 ${posIndex + 1} Canvas水印添加失败:`, drawError);
+            }
+          }
+          
+        } catch (canvasError) {
+          console.warn(`⚠️ Canvas水印渲染失败，使用传统方式:`, canvasError);
+          
+          // 回退到传统PDF文本绘制
+          for (let posIndex = 0; posIndex < watermarkPositions.length; posIndex++) {
+            const { x, y } = watermarkPositions[posIndex];
+            
+            try {
+              currentPageForWatermark.drawText(finalWatermarkText, {
+                x,
+                y,
+                size: watermarkFontSize,
+                font,
+                color: rgb(watermarkColor.r, watermarkColor.g, watermarkColor.b),
+                opacity: watermarkOpacity
+              });
+              console.log(`✅ 页面 ${pageIndex + 1} 位置 ${posIndex + 1} 传统水印添加成功`);
+            } catch (error) {
+              console.error(`❌ 页面 ${pageIndex + 1} 位置 ${posIndex + 1} 传统水印添加失败:`, error);
+            }
           }
         }
       }
@@ -1006,8 +994,8 @@ export class NativeDocumentProcessor {
       }
       
       const extractedText = textMatches
-        .map(match => match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1'))
-        .filter(text => text.trim())
+        .map((match: string) => match.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, '$1'))
+        .filter((text: string) => text.trim())
         .join(' ');
       
       return extractedText || '(Word文档已转换为PDF格式)';
@@ -1409,6 +1397,18 @@ export class NativeDocumentProcessor {
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(blob);
+    });
+  }
+
+  /**
+   * Blob转ArrayBuffer - 用于Canvas水印图像处理
+   */
+  private blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as ArrayBuffer);
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(blob);
     });
   }
 }

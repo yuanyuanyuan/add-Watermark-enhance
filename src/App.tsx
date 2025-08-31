@@ -641,6 +641,7 @@ const App: React.FC = () => {
                           position: {
                             ...watermark.settings.position,
                             pattern: {
+                              spacing: { x: 200, y: 150 }, // 默认间距
                               ...watermark.settings.position.pattern,
                               stagger: e.target.checked
                             }
@@ -863,7 +864,8 @@ const App: React.FC = () => {
                 )}
               </div>
               <div className="p-4">
-                <h3 className="font-medium text-gray-900 truncate">
+                <h3 className="font-medium text-gray-900 truncate flex items-center">
+                  <span className="mr-2">{getFileIcon(result.originalFile)}</span>
                   {result.originalFile.name}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">

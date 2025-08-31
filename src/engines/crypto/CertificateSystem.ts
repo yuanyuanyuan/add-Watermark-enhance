@@ -239,7 +239,17 @@ export class CertificateSystem {
 
   private async _calculateHash(data: Uint8Array): Promise<string> {
     const algorithm = this._config.algorithm === 'SHA-512' ? 'SHA-512' : 'SHA-256';
-    const hashBuffer = await crypto.subtle.digest(algorithm, data);
+    // 确保数据是正确的ArrayBuffer格式
+    const buffer = data.buffer instanceof ArrayBuffer 
+      ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+      : new ArrayBuffer(data.byteLength);
+    
+    if (!(data.buffer instanceof ArrayBuffer)) {
+      const view = new Uint8Array(buffer);
+      view.set(data);
+    }
+    
+    const hashBuffer = await crypto.subtle.digest(algorithm, buffer);
     
     return Array.from(new Uint8Array(hashBuffer))
       .map(byte => byte.toString(16).padStart(2, '0'))
@@ -287,12 +297,12 @@ export class CertificateSystem {
       watermarkCount: metadata.watermarkCount,
       timestamp: metadata.timestamp,
       // 排除敏感信息
-      settings: {
+      settings: metadata.settings ? {
         type: metadata.settings.type,
-        position: metadata.settings.position.placement,
-        opacity: metadata.settings.position.opacity,
+        position: metadata.settings.position?.placement,
+        opacity: metadata.settings.position?.opacity,
         // 不包含具体的文本内容或图像数据
-      }
+      } : undefined
     };
   }
 

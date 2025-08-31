@@ -15,7 +15,7 @@ declare const self: DedicatedWorkerGlobalScope;
 
 class ImageProcessor {
   private _isProcessing = false;
-  private _currentTaskId: string | null = null;
+  // private _currentTaskId: string | null = null; // Unused variable
 
   constructor() {
     self.onmessage = (event: MessageEvent<WorkerMessage>) => {
@@ -46,7 +46,7 @@ class ImageProcessor {
     }
 
     this._isProcessing = true;
-    this._currentTaskId = taskId;
+    // this._currentTaskId = taskId; // Task tracking disabled
 
     const startTime = performance.now();
     const startMemory = this.estimateMemoryUsage();
@@ -88,7 +88,7 @@ class ImageProcessor {
       this.sendError(taskId, error instanceof Error ? error.message : 'Image processing failed');
     } finally {
       this._isProcessing = false;
-      this._currentTaskId = null;
+      // this._currentTaskId = null; // Task tracking disabled
     }
   }
 
@@ -347,11 +347,12 @@ class ImageProcessor {
     const data = imageData.data;
     
     // 应用锐化卷积核
-    const sharpenKernel = [
-      0, -intensity, 0,
-      -intensity, 1 + 4 * intensity, -intensity,
-      0, -intensity, 0
-    ];
+    // Sharpening kernel (for future implementation)
+    // const sharpenKernel = [
+    //   0, -intensity, 0,
+    //   -intensity, 1 + 4 * intensity, -intensity,
+    //   0, -intensity, 0
+    // ];
     
     // 这里应该实现完整的卷积算法
     // 简化实现：轻微增强对比度
@@ -480,7 +481,7 @@ class ImageProcessor {
   }
 
   private estimateMemoryUsage(): number {
-    return performance.memory?.usedJSHeapSize || 0;
+    return (performance as any).memory?.usedJSHeapSize || 0;
   }
 }
 

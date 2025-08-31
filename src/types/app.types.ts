@@ -14,6 +14,12 @@ export interface WatermarkAppState {
     context: CanvasRenderingContext2D | null;
     pool: CanvasPool;
     activeCanvases: Set<HTMLCanvasElement>;
+    chineseRenderer: {
+      initialized: boolean;
+      optimalFont: string | null;
+      renderQuality: string;
+      supportedFeatures: string[];
+    };
   };
   
   // WebWorker 并行处理状态
@@ -23,11 +29,38 @@ export interface WatermarkAppState {
     taskQueue: ProcessingTask[];
   };
   
+  // CDN库管理状态
+  cdn: {
+    initialized: boolean;
+    status?: 'error' | 'loading' | 'ready';
+    loadedLibraries?: Set<string> | string[];
+    loadingProgress?: Map<string, number>;
+    stats?: Record<string, any>;
+    healthMetrics?: Record<string, any>;
+    supportedFeatures?: string[];
+    lastError?: Error | null;
+  };
+  
+  // PDF引擎状态
+  pdfEngine: {
+    initialized: boolean;
+    status?: 'idle' | 'loading' | 'ready' | 'error';
+    supportedFeatures?: string[];
+    lastError?: any;
+  };
+  
   // 文件处理状态
   files: {
     selected: File[];
     processing: Map<string, ProcessingStatus>;
     results: Map<string, WatermarkResult>;
+    statistics: {
+      totalProcessed: number;
+      successCount: number;
+      errorCount: number;
+      averageProcessingTime: number;
+      chineseContentDetected: number;
+    };
   };
   
   // 水印设置状态
@@ -52,6 +85,7 @@ export interface WatermarkAppState {
     warnings: PerformanceWarning[];
     memoryUsage: number;
   };
+  
 }
 
 export interface ProcessingStatus {
@@ -117,11 +151,66 @@ export type AppError = {
   recoverable: boolean;
 };
 
+// 健康检查相关类型
+export interface HealthCheckResult {
+  overall: 'healthy' | 'warning' | 'error';
+  canvas: 'ready' | 'error' | 'not_initialized';
+  cdn: 'ready' | 'loading' | 'error' | 'not_initialized';
+  pdfEngine: 'ready' | 'loading' | 'error' | 'not_initialized';
+  workers: 'ready' | 'error' | 'not_initialized';
+  timestamp: number;
+  details?: Record<string, unknown>;
+  components?: {
+    cdn: 'healthy' | 'warning' | 'error';
+    canvasRenderer: 'healthy' | 'warning' | 'error';
+    pdfEngine: 'healthy' | 'warning' | 'error';
+    stateManagement: 'healthy' | 'warning' | 'error';
+  };
+  recommendations?: string[];
+}
+
+export interface CDNStatus {
+  initialized: boolean;
+  loadedLibraries: string[];
+  healthMetrics?: {
+    latency: number;
+    availability: number;
+  };
+  supportedFeatures?: string[];
+  lastError?: Error | null;
+}
+
+export interface EngineStatus {
+  canvas: {
+    initialized: boolean;
+    context: boolean;
+    chineseRenderer: boolean;
+  };
+  pdf: {
+    initialized: boolean;
+    supportedFeatures: string[];
+  };
+  pdfEngine: {
+    initialized: boolean;
+    status: string;
+    supportedFeatures: string[];
+    lastError: any;
+  };
+  workers: {
+    active: number;
+    total: number;
+    healthy: boolean;
+  };
+}
+
 // Zustand Store Actions
 export interface WatermarkAppActions {
   // Canvas 引擎操作
   initializeCanvas: () => Promise<void>;
   disposeCanvas: () => void;
+  
+  // 系统初始化操作
+  initializeSystem: () => Promise<void>;
   
   // 文件操作
   selectFiles: (files: File[]) => void;
@@ -145,6 +234,14 @@ export interface WatermarkAppActions {
   updateMetrics: (metrics: Partial<PerformanceMetrics>) => void;
   addWarning: (warning: PerformanceWarning) => void;
   clearWarnings: () => void;
+  
+  // 健康检查操作
+  performHealthCheck: () => Promise<HealthCheckResult>;
+  getCDNStatus: () => CDNStatus;
+  getEngineStatus: () => EngineStatus;
+  
+  // 辅助方法
+  blobToDataURL: (blob: Blob) => Promise<string>;
 }
 
 export type WatermarkStore = WatermarkAppState & WatermarkAppActions;

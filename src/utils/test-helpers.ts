@@ -3,6 +3,8 @@
  * 为水印功能测试提供模拟数据和工具函数
  */
 
+import { expect, vi } from 'vitest';
+
 // 创建模拟的File对象
 export const createMockFile = (
   name: string = 'test-image.jpg',

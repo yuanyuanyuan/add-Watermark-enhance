@@ -15,7 +15,8 @@ const chineseWatermarkSettings: SimpleWatermarkSettings = {
     font: {
       family: 'Arial',
       size: 24,
-      weight: 'normal'
+      weight: 'normal',
+      style: 'normal'
     },
     color: '#FF0000'
   },
@@ -39,7 +40,8 @@ const englishWatermarkSettings: SimpleWatermarkSettings = {
     font: {
       family: 'Arial',
       size: 24,
-      weight: 'normal'
+      weight: 'normal',
+      style: 'normal'
     },
     color: '#FF0000'
   },

@@ -28,12 +28,10 @@ const mockDocument = {
 // 模拟alert
 global.alert = vi.fn();
 
-// 模拟setTimeout
-vi.useFakeTimers();
-
 describe('downloadHelper', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
     global.document = mockDocument as any;
   });
 

@@ -100,10 +100,7 @@ export class RenderingPipeline {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? {
-          code: 'RENDER_TIMEOUT' as const,
-          message: error.message
-        } : undefined,
+        error: error instanceof Error ? new Error(`RENDER_TIMEOUT: ${error.message}`) : undefined,
         metrics: {
           ...this._renderer.metrics,
           renderTime: performance.now() - startTime
@@ -165,7 +162,7 @@ export const InputValidationStage: PipelineStage<RenderOperation> = {
     return !!(input.source && input.options);
   },
   
-  async execute(input: RenderOperation, context: PipelineContext): Promise<RenderOperation> {
+  async execute(input: RenderOperation, _context: PipelineContext): Promise<RenderOperation> {
     // 验证输入参数
     if (!input.source) {
       throw new Error('Source image is required');
@@ -178,8 +175,9 @@ export const InputValidationStage: PipelineStage<RenderOperation> = {
     // 验证图像源
     if (input.source instanceof HTMLImageElement && !input.source.complete) {
       await new Promise((resolve, reject) => {
-        input.source.addEventListener('load', resolve);
-        input.source.addEventListener('error', reject);
+        const imageElement = input.source as HTMLImageElement;
+        imageElement.addEventListener('load', resolve);
+        imageElement.addEventListener('error', reject);
       });
     }
 
@@ -224,8 +222,13 @@ export const PreprocessingStage: PipelineStage<RenderOperation> = {
 export const RenderExecutionStage: PipelineStage<RenderOperation> = {
   name: 'RenderExecution',
   
-  async execute(input: RenderOperation, context: PipelineContext): Promise<RenderResult> {
-    return await context.renderer.render(input);
+  async execute(input: RenderOperation, context: PipelineContext): Promise<RenderOperation> {
+    const result = await context.renderer.render(input);
+    // 返回修改后的操作，包含渲染结果
+    return {
+      ...input,
+      result
+    };
   }
 };
 
@@ -235,7 +238,7 @@ export const RenderExecutionStage: PipelineStage<RenderOperation> = {
 export const PostprocessingStage: PipelineStage<RenderResult> = {
   name: 'Postprocessing',
   
-  async execute(input: RenderResult, context: PipelineContext): Promise<RenderResult> {
+  async execute(input: RenderResult, _context: PipelineContext): Promise<RenderResult> {
     if (!input.success || !input.canvas) {
       return input;
     }
@@ -263,13 +266,13 @@ export const PostprocessingStage: PipelineStage<RenderResult> = {
 export const OutputOptimizationStage: PipelineStage<RenderResult> = {
   name: 'OutputOptimization',
   
-  async execute(input: RenderResult, context: PipelineContext): Promise<RenderResult> {
+  async execute(input: RenderResult, _context: PipelineContext): Promise<RenderResult> {
     if (!input.success || !input.canvas) {
       return input;
     }
 
     // 优化输出格式和质量
-    const canvas = input.canvas;
+    // const canvas = input.canvas; // 优化逻辑待实现
     
     // 根据内容自动选择最佳格式
     // 例如：透明内容使用 PNG，照片使用 JPEG

@@ -222,7 +222,7 @@ export class CanvasRenderer implements CanvasRenderingEngine {
     }
   }
 
-  private async _compositeImages(operation: RenderOperation): Promise<RenderResult> {
+  private async _compositeImages(_operation: RenderOperation): Promise<RenderResult> {
     // 复合操作实现
     throw this._createError('INVALID_OPERATION', 'Composite operation not yet implemented');
   }
@@ -293,8 +293,8 @@ export class CanvasRenderer implements CanvasRenderingEngine {
   }
 
   private async _applyImageProcessing(
-    ctx: CanvasRenderingContext2D,
-    options: any
+    _ctx: CanvasRenderingContext2D,
+    _options: any
   ): Promise<void> {
     // 图像处理实现（如调整亮度、对比度等）
     // 这里可以添加各种滤镜效果

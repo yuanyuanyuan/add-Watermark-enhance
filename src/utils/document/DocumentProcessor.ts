@@ -5,10 +5,10 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
-import { SimpleWatermarkProcessor, type SimpleWatermarkSettings, type SimpleWatermarkResult } from '../watermark/SimpleWatermarkProcessor';
+import { SimpleWatermarkProcessor, type SimpleWatermarkSettings } from '../watermark/SimpleWatermarkProcessor';
 
-// 配置PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// 配置PDF.js worker - 使用稳定的备用CDN
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
 export interface DocumentProcessorResult {
   success: boolean;
@@ -30,10 +30,17 @@ export interface DocumentProcessorResult {
 }
 
 export class DocumentProcessor {
-  private watermarkProcessor: SimpleWatermarkProcessor;
+  private _watermarkProcessor: SimpleWatermarkProcessor;
 
   constructor() {
-    this.watermarkProcessor = new SimpleWatermarkProcessor();
+    this._watermarkProcessor = new SimpleWatermarkProcessor();
+  }
+
+  /**
+   * 获取水印处理器实例
+   */
+  public getWatermarkProcessor(): SimpleWatermarkProcessor {
+    return this._watermarkProcessor;
   }
 
   /**
@@ -76,9 +83,16 @@ export class DocumentProcessor {
     settings: SimpleWatermarkSettings,
     startTime: number
   ): Promise<DocumentProcessorResult> {
-    // 加载PDF文档
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    console.log('🔄 开始PDF处理:', {
+      fileName: file.name,
+      fileSize: file.size,
+      workerSrc: pdfjsLib.GlobalWorkerOptions.workerSrc
+    });
+
+    try {
+      // 加载PDF文档
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     
     const processedPages = [];
     const pageCount = pdf.numPages;
@@ -102,7 +116,7 @@ export class DocumentProcessor {
       const renderContext = {
         canvasContext: context,
         viewport: viewport
-      };
+      } as any; // PDF.js RenderParameters type
       await page.render(renderContext).promise;
 
       // 添加水印
@@ -122,17 +136,28 @@ export class DocumentProcessor {
 
     const processingTime = performance.now() - startTime;
 
-    return {
-      success: true,
-      originalFile: file,
-      processedPages,
-      processedDocument: {
-        blob: processedPages[0].blob, // 第一页作为主要输出
-        format: 'png',
-        pageCount
-      },
-      processingTime
-    };
+      return {
+        success: true,
+        originalFile: file,
+        processedPages,
+        processedDocument: {
+          blob: processedPages[0].blob, // 第一页作为主要输出
+          format: 'png',
+          pageCount
+        },
+        processingTime
+      };
+    } catch (error) {
+      const processingTime = performance.now() - startTime;
+      console.error('❌ PDF处理失败:', error);
+      
+      return {
+        success: false,
+        originalFile: file,
+        error: error instanceof Error ? error.message : 'PDF处理失败',
+        processingTime
+      };
+    }
   }
 
   /**
@@ -278,7 +303,7 @@ export class DocumentProcessor {
       const fontStyle = text.font?.style || 'normal';
       
       context.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
-      context.fillStyle = text.color || '#000000';
+      context.fillStyle = (typeof text.color === 'string' ? text.color : text.color?.primary) || '#000000';
       context.textAlign = 'center';
       context.textBaseline = 'middle';
       

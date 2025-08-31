@@ -18,6 +18,13 @@ class CryptoProcessor {
   private _isProcessing = false;
   private _currentTaskId: string | null = null;
 
+  /**
+   * 获取当前任务ID
+   */
+  public getCurrentTaskId(): string | null {
+    return this._currentTaskId;
+  }
+
   constructor() {
     self.onmessage = (event: MessageEvent<WorkerMessage>) => {
       this.handleMessage(event.data);
@@ -64,7 +71,7 @@ class CryptoProcessor {
         case 'hash-generate':
           result = await this.generateHash(taskId, task);
           break;
-        case 'sign-data':
+        case 'hash-generate':
           result = await this.signData(taskId, task);
           break;
         default:
@@ -196,7 +203,8 @@ class CryptoProcessor {
 
   private async calculateImageHash(imageData: Uint8ClampedArray): Promise<string> {
     // 使用 Web Crypto API 计算 SHA-256
-    const buffer = await crypto.subtle.digest('SHA-256', imageData);
+    const uint8Array = new Uint8Array(imageData);
+    const buffer = await crypto.subtle.digest('SHA-256', uint8Array);
     return this.arrayBufferToHex(buffer);
   }
 

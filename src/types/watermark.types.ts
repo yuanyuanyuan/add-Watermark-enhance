@@ -3,7 +3,7 @@
  * 基于架构文档的水印功能设计
  */
 
-import type { RenderResult, CanvasErrorInfo } from './canvas.types';
+import type { CanvasErrorInfo } from './canvas.types';
 import type { CertificateData } from './worker.types';
 
 export interface WatermarkProcessor {
@@ -70,16 +70,25 @@ export interface ImageWatermarkConfig {
 }
 
 export interface WatermarkLayoutConfig {
-  placement: 'corner' | 'center' | 'edge' | 'pattern' | 'custom';
+  placement: 'corner' | 'center' | 'edge' | 'pattern' | 'custom' | 'grid';
   corner?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   edge?: 'top' | 'right' | 'bottom' | 'left';
   pattern?: PatternConfig;
   custom?: CustomPositionConfig;
+  grid?: GridConfig;
   margin: MarginConfig;
   opacity: number; // 0.0 - 1.0
   scale: number; // 0.1 - 2.0
   rotation: number; // degrees
   blendMode: GlobalCompositeOperation;
+}
+
+export interface GridConfig {
+  spacingX: number; // horizontal spacing between watermarks
+  spacingY: number; // vertical spacing between watermarks
+  stagger?: boolean; // whether to stagger alternate rows
+  layers?: number; // number of layers (default 1)
+  densityMode?: 'low' | 'normal' | 'high'; // density of watermarks
 }
 
 export interface PatternConfig {
@@ -162,6 +171,8 @@ export interface ProcessingMetadata {
   originalSize?: number; // 原始文件大小
   processedSize?: number; // 处理后文件大小
   version?: string; // 处理器版本
+  enhancedEngine?: boolean; // 是否使用增强引擎
+  conversionMethod?: string; // 转换方法
 }
 
 export interface ValidationResult {
@@ -181,7 +192,9 @@ export type WatermarkError =
   | 'VALIDATION_FAILED'
   | 'OUTPUT_SIZE_EXCEEDED';
 
-export interface WatermarkErrorInfo extends CanvasErrorInfo {
+export interface WatermarkErrorInfo {
   code: WatermarkError;
+  message: string;
+  context?: Record<string, unknown>;
   watermarkConfig?: Partial<WatermarkSettings>;
 }

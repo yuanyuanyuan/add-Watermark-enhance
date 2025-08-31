@@ -5,7 +5,7 @@
 
 export interface ProcessingTask {
   id: string;
-  type: 'watermark' | 'process' | 'validate' | 'compress';
+  type: 'watermark' | 'process' | 'validate' | 'compress' | 'generate-certificate' | 'validate-certificate' | 'hash-generate' | 'resize' | 'format-convert' | 'optimize' | 'filter';
   data: TaskData;
   priority: TaskPriority;
   timeout?: number;
@@ -17,6 +17,16 @@ export interface TaskData {
   canvas?: HTMLCanvasElement;
   watermarkConfig?: WatermarkConfig;
   options: ProcessingOptions;
+  // 新增属性以支持不同类型的任务
+  metadata?: any;
+  certificate?: any;
+  data?: Uint8Array;
+  algorithm?: string;
+  targetSize?: { width: number; height: number };
+  targetFormat?: string;
+  filterType?: string;
+  intensity?: number;
+  memory?: number;
 }
 
 export interface ProcessingOptions {
@@ -24,6 +34,11 @@ export interface ProcessingOptions {
   format: 'png' | 'jpeg' | 'webp';
   maxFileSize?: number;
   preserveMetadata?: boolean;
+  // 扩展属性以支持更多操作
+  targetSize?: { width: number; height: number };
+  targetFormat?: string;
+  filterType?: string;
+  intensity?: number;
 }
 
 export interface WatermarkConfig {
@@ -65,7 +80,7 @@ export interface WorkerPool {
   readonly taskQueue: ProcessingTask[];
   readonly maxWorkers: number;
   
-  execute<T = TaskResultData>(task: ProcessingTask): Promise<TaskResult>;
+  execute(task: ProcessingTask): Promise<TaskResult>;
   terminate(): void;
 }
 

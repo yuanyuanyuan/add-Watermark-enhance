@@ -30,7 +30,7 @@ export class HashGenerator {
     if (typeof data === 'string') {
       buffer = new TextEncoder().encode(data).buffer;
     } else if (data instanceof Uint8Array) {
-      buffer = data.buffer;
+      buffer = data.buffer.slice() as ArrayBuffer; // 确保类型为ArrayBuffer
     } else {
       buffer = data;
     }

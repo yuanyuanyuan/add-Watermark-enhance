@@ -198,9 +198,12 @@ export function useFileProcessor(options: UseFileProcessorOptions = {}): UseFile
     try {
       // 模拟进度更新
       const progressInterval = setInterval(() => {
-        updateFileStatus(fileId, prevStatus => ({
-          progress: Math.min(90, (prevStatus?.progress || 0) + Math.random() * 10)
-        }));
+        const currentStatus = files.get(fileId);
+        if (currentStatus) {
+          updateFileStatus(fileId, {
+            progress: Math.min(90, currentStatus.progress + Math.random() * 10)
+          });
+        }
       }, 200);
 
       const result = await processor(fileStatus.file);

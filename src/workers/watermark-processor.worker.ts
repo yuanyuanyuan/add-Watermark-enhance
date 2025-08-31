@@ -17,7 +17,7 @@ declare const self: DedicatedWorkerGlobalScope;
 
 class WatermarkProcessor {
   private _isProcessing = false;
-  private _currentTaskId: string | null = null;
+  // private _currentTaskId: string | null = null; // Unused variable
 
   constructor() {
     // 监听主线程消息
@@ -49,7 +49,7 @@ class WatermarkProcessor {
     }
 
     this._isProcessing = true;
-    this._currentTaskId = taskId;
+    // this._currentTaskId = taskId; // Task tracking disabled
 
     const startTime = performance.now();
     const startMemory = this.estimateMemoryUsage();
@@ -94,7 +94,7 @@ class WatermarkProcessor {
       this.sendError(taskId, error instanceof Error ? error.message : 'Processing failed');
     } finally {
       this._isProcessing = false;
-      this._currentTaskId = null;
+      // this._currentTaskId = null; // Task tracking disabled
     }
   }
 
@@ -177,7 +177,7 @@ class WatermarkProcessor {
     };
   }
 
-  private async validateWatermark(taskId: string, task: ProcessingTask): Promise<any> {
+  private async validateWatermark(taskId: string, _task: ProcessingTask): Promise<any> {
     // 水印验证逻辑
     this.sendProgress(taskId, 0.5);
     
@@ -355,7 +355,7 @@ class WatermarkProcessor {
 
   private estimateMemoryUsage(): number {
     // 简化的内存使用估算
-    return performance.memory?.usedJSHeapSize || 0;
+    return (performance as any).memory?.usedJSHeapSize || 0;
   }
 }
 

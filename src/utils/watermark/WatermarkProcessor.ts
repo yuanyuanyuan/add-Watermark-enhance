@@ -98,7 +98,7 @@ export class WatermarkProcessor implements IWatermarkProcessor {
         processedImage: this._createErrorImageData(),
         metadata: this._generateErrorMetadata(settings, startTime, error),
         error: {
-          code: 'PROCESSING_FAILED',
+          code: 'PROCESSING_FAILED' as any,
           message: error instanceof Error ? error.message : 'Unknown error'
         }
       };
@@ -274,7 +274,7 @@ export class WatermarkProcessor implements IWatermarkProcessor {
 
   private async _processWithCanvas(
     imageData: ImageData,
-    originalFile: File,
+    _originalFile: File,
     settings: WatermarkSettings
   ): Promise<ProcessedImageData> {
     const canvas = document.createElement('canvas');
@@ -308,7 +308,7 @@ export class WatermarkProcessor implements IWatermarkProcessor {
 
   private async _processWithWorker(
     imageData: ImageData,
-    originalFile: File,
+    _originalFile: File,
     settings: WatermarkSettings
   ): Promise<ProcessedImageData> {
     const task = {
@@ -335,8 +335,8 @@ export class WatermarkProcessor implements IWatermarkProcessor {
     return {
       blob: result.data.blob,
       dataUrl: URL.createObjectURL(result.data.blob),
-      dimensions: result.data.dimensions,
-      format: result.data.format,
+      dimensions: (result.data as any).dimensions || { width: 0, height: 0 },
+      format: (result.data as any).format || 'png',
       size: result.data.blob.size
     };
   }
@@ -407,7 +407,7 @@ export class WatermarkProcessor implements IWatermarkProcessor {
   private _generateErrorMetadata(
     settings: WatermarkSettings,
     startTime: number,
-    error: any
+    _error: any
   ): ProcessingMetadata {
     return {
       processingTime: performance.now() - startTime,

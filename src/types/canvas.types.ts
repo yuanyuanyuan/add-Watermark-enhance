@@ -29,6 +29,8 @@ export interface RenderOperation {
   source: ImageData | HTMLCanvasElement | HTMLImageElement;
   watermark?: WatermarkConfig;
   options: RenderOptions;
+  onProgress?: (progress: number) => void;
+  result?: RenderResult;
 }
 
 export interface RenderOptions {

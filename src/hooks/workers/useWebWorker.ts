@@ -21,7 +21,7 @@ export interface UseWebWorkerReturn {
   isInitialized: boolean;
   stats: any;
   activeTaskIds: Set<string>;
-  execute: <T = any>(task: ProcessingTask) => Promise<TaskResult>;
+  execute: (task: ProcessingTask) => Promise<TaskResult>;
   terminate: () => void;
   getHealth: () => any;
 }
@@ -55,7 +55,7 @@ export function useWebWorker(options: UseWebWorkerOptions = {}): UseWebWorkerRet
     }
   }, [maxWorkers]);
 
-  const execute = useCallback(async <T = any>(task: ProcessingTask): Promise<TaskResult> => {
+  const execute = useCallback(async (task: ProcessingTask): Promise<TaskResult> => {
     if (!poolRef.current) {
       throw new Error('Worker pool not initialized');
     }
@@ -75,7 +75,7 @@ export function useWebWorker(options: UseWebWorkerOptions = {}): UseWebWorkerRet
     };
 
     try {
-      const result = await poolRef.current.execute<T>(wrappedTask);
+      const result = await poolRef.current.execute(wrappedTask);
       
       // 更新统计信息
       if (poolRef.current) {

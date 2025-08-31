@@ -79,7 +79,7 @@ export class WorkerPool implements IWorkerPool {
   /**
    * 执行任务
    */
-  async execute<T = any>(task: ProcessingTask): Promise<TaskResult> {
+  async execute(task: ProcessingTask): Promise<TaskResult> {
     if (this._isTerminated) {
       throw new Error('Worker pool has been terminated');
     }
@@ -134,7 +134,7 @@ export class WorkerPool implements IWorkerPool {
     this._isTerminated = true;
 
     // 拒绝所有待处理的任务
-    for (const [taskId, { reject }] of this._pendingPromises) {
+    for (const [, { reject }] of this._pendingPromises) {
       reject(new Error('Worker pool terminated'));
     }
     this._pendingPromises.clear();
@@ -334,7 +334,7 @@ export class WorkerPool implements IWorkerPool {
     this._processQueue();
   }
 
-  private _handleTaskProgress(workerId: string, message: WorkerMessage): void {
+  private _handleTaskProgress(_workerId: string, message: WorkerMessage): void {
     const taskId = message.taskId;
     const progress = message.data as number;
     
@@ -360,7 +360,9 @@ export class WorkerPool implements IWorkerPool {
     // 拒绝 Promise
     const promise = this._pendingPromises.get(taskId);
     if (promise) {
-      promise.reject(new Error(errorData.message || 'Worker task failed'));
+      const errorMessage = (errorData && typeof errorData === 'object' && 'message' in errorData) ? 
+        (errorData as any).message : 'Worker task failed';
+      promise.reject(new Error(errorMessage));
     }
 
     // 处理下一个任务

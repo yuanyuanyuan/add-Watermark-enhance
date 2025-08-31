@@ -2,24 +2,22 @@
 /sc:implement "增加一个灵感来源模块，可以填写来源名称和url，这个是可以点击的url，这个是需要在配置文件上配置的。"
 /sc:implement "增加一个作者模块，可以填写作者名称和url，这个是可以点击的url，这个是需要在配置文件上配置的。"
 
-/sc:implement "我看到别人的工具可以支持pdf里面有中文水印，要重新调研清楚怎么实现的，他用到   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+/sc:implement "
 "
 /sc:implement "预览区域要大一点，如果预览内容过长，要支持滚动"
 
 /sc:troubleshoot "修复所有类型检查报错和build 报错"
 
 
-/sc:troubleshoot "在pdf添加水印中，添加上中文水印，但是颜色不能修改，需要修复，另外需要把完整的用户选择参数也打印到控制面板，方便进行调试"
+/sc:troubleshoot "pdf的水印加上了，但是里面的内容都丢失了。不管是word 加水印转pdf，还是pdf的加水印，无论是中文水印还是英文水印，都存在这个问题，需要修复"
 
 /sc:troubleshoot " 在word转pdf中，转换后丢失了word的内容，水印能添加上，但是水印的属性丢失很多，例如颜色丢了。，需要修复：
 
 
     "
 
-/sc:implement "为了解决中文水印的问题，我找了一个技术方案来协助完成实现：
+/sc
+:implement "为了解决中文水印的问题，我找了一个技术方案来协助完成实现：
 
  🔍 核心功能深度技术解析
 
